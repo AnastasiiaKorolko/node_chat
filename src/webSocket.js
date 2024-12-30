@@ -1,14 +1,61 @@
-import WebSocket from 'ws';
+'use strict';
+import http from 'http';
+import { WebSocketServer } from 'ws';
 
-const server = new WebSocket.Server({ port: 3005 });
+import express from 'express';
+import cors from 'cors';
+
+const app = express();
+
+app.use(cors({ origin: '*' }));
+app.use(express.json());
+
+const messages = [];
+
+app.get('/', (req, res) => {
+  res.send('Hello World');
+});
+
+app.post('/message', (req, res) => {
+  const { author, text } = req.body;
+
+  if (!author || !text) {
+    return res.status(400).send({ error: 'Author and text are required' });
+  }
+
+  const message = {
+    author,
+    text,
+    time: new Date(),
+  };
+
+  messages.push(message);
+
+  res.status(201).send(message);
+});
+
+app.get('/messages', (req, res) => {
+  res.status(200).send(messages);
+});
+
+const server = http.createServer(app);
+const wsServer = new WebSocketServer({ server });
+console.log("Starting WebSocket server...");
+
+const PORT = 3001;
+
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+});
 
 let clients = [];
 const rooms = {};
 
-server.on('connection', (ws) => {
+wsServer.on('connection', (ws) => {
   let currentRoom = null;
 
   clients.push(ws);
+  console.log(`====TEST===`)
 
   ws.on('message', (message) => {
     try {
